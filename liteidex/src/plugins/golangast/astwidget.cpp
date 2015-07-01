@@ -25,6 +25,8 @@
 #include "golangastitem.h"
 #include "golangasticon.h"
 #include "golangdocapi/golangdocapi.h"
+#include "litebuildapi/litebuildapi.h"
+#include "fileutil/fileutil.h"
 
 #include <QAction>
 #include <QMenu>
@@ -73,9 +75,11 @@ AstWidget::AstWidget(bool outline, LiteApi::IApplication *app, QWidget *parent) 
     m_tree->setContextMenuPolicy(Qt::CustomContextMenu);
 
     m_gotoPosAct = new QAction(tr("Go To Definition"),this);
+    m_testFuncAct = new QAction(tr("Test Function"),this);
     m_importDocAct = new QAction(tr("View Import Document"),this);
     m_contextMenu = new QMenu(this);
     m_contextMenu->addAction(m_gotoPosAct);
+    m_contextMenu->addAction(m_testFuncAct);
     m_contextMenu->addAction(m_importDocAct);
 
     m_contextItem = 0;
@@ -83,6 +87,7 @@ AstWidget::AstWidget(bool outline, LiteApi::IApplication *app, QWidget *parent) 
     connect(m_filterEdit,SIGNAL(filterChanged(QString)),this,SLOT(filterChanged(QString)));
     connect(m_tree,SIGNAL(customContextMenuRequested(QPoint)),this,SLOT(treeContextMenuRequested(QPoint)));
     connect(m_gotoPosAct,SIGNAL(triggered()),this,SLOT(gotoDefinition()));
+    connect(m_testFuncAct,SIGNAL(triggered()),this,SLOT(testFunction()));
     connect(m_importDocAct,SIGNAL(triggered()),this,SLOT(viewImportDoc()));
 }
 
@@ -204,6 +209,11 @@ void AstWidget::gotoDefinition()
     gotoItemDefinition(m_contextItem);
 }
 
+void AstWidget::testFunction()
+{
+    testFunctionAtItem(m_contextItem);
+}
+
 void AstWidget::viewImportDoc()
 {
     LiteApi::IGolangDoc *doc = LiteApi::getGolangDoc(m_liteApp);
@@ -225,6 +235,23 @@ void AstWidget::doubleClicked(QModelIndex index)
         }
     } else {
         gotoItemDefinition(item);
+    }
+}
+
+void AstWidget::testFunctionAtItem(GolangAstItem *item)
+{
+    if (item->m_posList.isEmpty()) {
+         return;
+    }
+    LiteApi::ILiteBuild *build = LiteApi::getLiteBuild(m_liteApp);
+    QString args = "test -run " + item->text();
+    QString cmd = FileUtil::lookupGoBin("go",m_liteApp,false);
+    //m_outputRegex = "(\\w?:?[\\w\\d_\\-\\\\/\\.]+):(\\d+):";
+    //m_process->setUserData(ID_REGEXP,m_outputRegex);
+    if (!cmd.isEmpty()) {
+        m_liteApp->editorManager()->saveAllEditors();
+        //build->stopAction();
+        build->executeCommand(cmd,args,m_workPath,true,true,false,false);
     }
 }
 

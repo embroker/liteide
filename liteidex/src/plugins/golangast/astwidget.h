@@ -54,10 +54,12 @@ public slots:
     void filterChanged(QString);
     void treeContextMenuRequested(QPoint);
     void gotoDefinition();
+    void testFunction();
     void viewImportDoc();
     void doubleClicked(QModelIndex);
 protected:
     void gotoItemDefinition(GolangAstItem *item);
+    void testFunctionAtItem(GolangAstItem *item);
     bool                m_bOutline;
     bool                m_bFirst;    
     SymbolTreeView     *m_tree;
@@ -66,6 +68,7 @@ protected:
     QSortFilterProxyModel *proxyModel;
     LiteApi::IApplication *m_liteApp;
     QAction             *m_gotoPosAct;
+    QAction             *m_testFuncAct;
     QAction             *m_importDocAct;
     QMenu               *m_contextMenu;
     GolangAstItem       *m_contextItem;
