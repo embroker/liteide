@@ -494,7 +494,6 @@ void LiteDebug::startDebug()
     }
 
     this->startDebug(info.cmd,info.args,info.workDir);
-    m_startDebugAct->setEnabled(false);
 }
 
 void LiteDebug::continueRun()
@@ -656,8 +655,7 @@ void LiteDebug::debugLoaded()
 
 void LiteDebug::debugStarted()
 {
-    m_startDebugAct->setEnabled(false);
-    //m_continueAct->setEnabled(true);
+    m_startDebugAct->setEnabled(true);
     m_stopDebugAct->setEnabled(true);
     m_showLineAct->setEnabled(true);
     m_stepOverAct->setEnabled(true);
