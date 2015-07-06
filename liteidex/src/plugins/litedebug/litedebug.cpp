@@ -189,6 +189,7 @@ LiteDebug::LiteDebug(LiteApi::IApplication *app, QObject *parent) :
     connect(m_liteApp->editorManager(),SIGNAL(editorAboutToClose(LiteApi::IEditor*)),this,SLOT(editorAboutToClose(LiteApi::IEditor*)));
     connect(m_liteApp->editorManager(),SIGNAL(currentEditorChanged(LiteApi::IEditor*)),this,SLOT(currentEditorChanged(LiteApi::IEditor*)));
     connect(m_output,SIGNAL(enterText(QString)),this,SLOT(enterAppInputText(QString)));
+    connect(m_output,SIGNAL(dbclickEvent(QTextCursor)),this,SLOT(dbclickBuildOutput(QTextCursor)));
     connect(m_dbgWidget,SIGNAL(debugCmdInput()),this,SLOT(debugCmdInput()));
 
     m_outputAct = m_liteApp->toolWindowManager()->addToolWindow(
@@ -493,6 +494,7 @@ void LiteDebug::startDebug()
     }
 
     this->startDebug(info.cmd,info.args,info.workDir);
+    m_startDebugAct->setEnabled(false);
 }
 
 void LiteDebug::continueRun()
@@ -530,6 +532,7 @@ void LiteDebug::stopDebug()
         return;
     }
     m_debugger->stop();
+    m_startDebugAct->setEnabled(true);
 }
 
 void LiteDebug::stepOver()
@@ -654,7 +657,7 @@ void LiteDebug::debugLoaded()
 void LiteDebug::debugStarted()
 {
     m_startDebugAct->setEnabled(false);
-    m_continueAct->setEnabled(true);
+    //m_continueAct->setEnabled(true);
     m_stopDebugAct->setEnabled(true);
     m_showLineAct->setEnabled(true);
     m_stepOverAct->setEnabled(true);
@@ -739,4 +742,54 @@ void LiteDebug::hideDebug()
 {
     m_widget->hide();
     emit debugVisible(false);
+}
+
+void LiteDebug::dbclickBuildOutput(const QTextCursor &cur)
+{
+    if (m_outputRegex.isEmpty()) {
+        m_outputRegex = "(\\w?:?[\\w\\d_\\-\\\\/\\.]+):(\\d+)";
+    }
+    QRegExp rep(m_outputRegex);
+
+    int index = rep.indexIn(cur.block().text());
+    if (index < 0)
+        return;
+    QStringList capList = rep.capturedTexts();
+
+    if (capList.count() < 3)
+        return;
+    QString fileName = capList[1];
+    QString fileLine = capList[2];
+
+    bool ok = false;
+    int line = fileLine.toInt(&ok);
+    if (!ok)
+        return;
+
+    LiteApi::TargetInfo info = m_liteBuild->getTargetInfo();
+    QDir dir(info.workDir);
+    QString filePath = dir.filePath(fileName);
+    if (QFile::exists(filePath)) {
+        fileName = filePath;
+    } else {
+        foreach(QFileInfo info,dir.entryInfoList(QDir::AllDirs | QDir::NoDotAndDotDot)) {
+            QDir currentAbsoluteDir(info.absoluteFilePath());
+            QString attempt = currentAbsoluteDir.absoluteFilePath(fileName);
+            if (QFile::exists(attempt)) {
+                fileName = attempt;
+                break;
+            }
+            QString currentPath = info.absoluteDir().filePath(fileName);
+            if (QFile::exists(currentPath)) {
+                fileName = currentPath;
+                break;
+            }
+        }
+    }
+
+    if (LiteApi::gotoLine(m_liteApp,fileName,line-1,0,true,true)) {
+        QTextCursor lineCur = cur;
+        lineCur.select(QTextCursor::LineUnderCursor);
+        m_output->setTextCursor(lineCur);
+    }
 }

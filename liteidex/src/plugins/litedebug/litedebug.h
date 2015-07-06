@@ -77,6 +77,7 @@ public slots:
     virtual void toggleBreakPoint();
     virtual void removeAllBreakPoints();
     virtual void enterAppInputText(QString);
+    void dbclickBuildOutput(const QTextCursor &cur);
 protected slots:
     void setDebugger(LiteApi::IDebugger*);
     void debugLoaded();
@@ -113,6 +114,7 @@ protected:
     QStringList m_debugMimeTypes;
     QString  m_debugInfoId;
     QString  m_startDebugFile;
+    QString     m_outputRegex;
     CurrentLine m_lastLine;
     QMultiMap<QString,int> m_fileBpMap;
 };
