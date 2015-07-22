@@ -28,6 +28,8 @@
 #include <QColor>
 #include <QMap>
 
+class QIODevice;
+
 class ColorStyle
 {
 public:
