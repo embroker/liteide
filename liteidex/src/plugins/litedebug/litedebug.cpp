@@ -1,7 +1,7 @@
 /**************************************************************************
 ** This file is part of LiteIDE
 **
-** Copyright (c) 2011-2015 LiteIDE Team. All rights reserved.
+** Copyright (c) 2011-2016 LiteIDE Team. All rights reserved.
 **
 ** This library is free software; you can redistribute it and/or
 ** modify it under the terms of the GNU Lesser General Public
@@ -75,7 +75,7 @@ LiteDebug::LiteDebug(LiteApi::IApplication *app, QObject *parent) :
     clearAct->setIcon(QIcon("icon:images/cleanoutput.png"));
     connect(clearAct,SIGNAL(triggered()),m_output,SLOT(clear()));
 
-    QVBoxLayout *layout = new QVBoxLayout;    
+    QVBoxLayout *layout = new QVBoxLayout;
     QToolBar *widgetToolBar = new QToolBar;
     widgetToolBar->setIconSize(LiteApi::getToolBarIconSize(m_liteApp));
     layout->setMargin(0);
@@ -448,7 +448,7 @@ void LiteDebug::startDebugTests()
 
     if(!m_liteBuild->buildTests())
     {
-    	m_liteApp->appendLog("LiteDebug","Build tests failed",true);
+        m_liteApp->appendLog("LiteDebug","Build tests failed",true);
     }
     LiteApi::TargetInfo info = m_liteBuild->getTargetInfo();
 
@@ -459,7 +459,7 @@ void LiteDebug::startDebugTests()
         testCmd = QFileInfo(findCmd).fileName();
     }
 
-	this->startDebug(testCmd,info.args,info.workDir);
+    this->startDebug(testCmd,info.args,info.workDir);
 }
 
 void LiteDebug::startDebug()
@@ -656,6 +656,7 @@ void LiteDebug::debugLoaded()
 void LiteDebug::debugStarted()
 {
     m_startDebugAct->setEnabled(true);
+    m_continueAct->setEnabled(true);
     m_stopDebugAct->setEnabled(true);
     m_showLineAct->setEnabled(true);
     m_stepOverAct->setEnabled(true);
@@ -665,7 +666,7 @@ void LiteDebug::debugStarted()
     m_output->setReadOnly(false);
     //m_liteApp->outputManager()->setCurrentOutput(m_output);
     m_outputAct->setChecked(true);
-    m_widget->show();    
+    m_widget->show();
     emit debugVisible(true);
 }
 
@@ -696,7 +697,7 @@ void LiteDebug::debugStoped()
 }
 
 void LiteDebug::setCurrentLine(const QString &fileName, int line)
-{ 
+{
     bool center = true;
     if (m_lastLine.fileName == fileName) {
         center = false;

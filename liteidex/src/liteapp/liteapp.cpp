@@ -1,7 +1,7 @@
 /**************************************************************************
 ** This file is part of LiteIDE
 **
-** Copyright (c) 2011-2015 LiteIDE Team. All rights reserved.
+** Copyright (c) 2011-2016 LiteIDE Team. All rights reserved.
 **
 ** This library is free software; you can redistribute it and/or
 ** modify it under the terms of the GNU Lesser General Public
@@ -65,7 +65,7 @@
 #endif
 //lite_memory_check_end
 
-#define LITEIDE_VERSION "X27.2.1"
+#define LITEIDE_VERSION "X28"
 
 QString LiteApp::getRootPath()
 {
@@ -526,7 +526,7 @@ QString LiteApp::ideName() const
 QString LiteApp::ideCopyright() const
 {
     static QString s_info =
-    "2011-2015(c)\n"
+    "2011-2016(c)\n"
     "visualfc@gmail.com\n"
     "\n"
     "https://github.com/visualfc/liteide\n";
@@ -623,9 +623,6 @@ void LiteApp::createActions()
     //m_openFolderNewWindowAct->setVisible(!b);
     actionContext->regAction(m_openFolderNewWindowAct,"OpenFolderNewWindow","");
 
-    m_addFolderAct = new QAction(tr("Add Folder..."),m_mainwindow);
-    actionContext->regAction(m_addFolderAct,"AddFolder","");
-
     m_closeAllFolderAct = new QAction(tr("Close All Folders"),m_mainwindow);
     actionContext->regAction(m_closeAllFolderAct,"CloseAllFolders","");
 
@@ -680,7 +677,6 @@ void LiteApp::createActions()
     connect(m_openFileAct,SIGNAL(triggered()),m_fileManager,SLOT(openFiles()));
     connect(m_openFolderAct,SIGNAL(triggered()),m_fileManager,SLOT(openFolder()));
     connect(m_openFolderNewWindowAct,SIGNAL(triggered()),m_fileManager,SLOT(openFolderNewWindow()));
-    connect(m_addFolderAct,SIGNAL(triggered()),m_fileManager,SLOT(addFolder()));
     connect(m_closeAllFolderAct,SIGNAL(triggered()),m_fileManager,SLOT(closeAllFolders()));
     connect(m_newWindow,SIGNAL(triggered()),this,SLOT(newWindow()));
     connect(m_closeWindow,SIGNAL(triggered()),this,SLOT(closeWindow()));
@@ -706,7 +702,6 @@ void LiteApp::createMenus()
 
     m_fileMenu->addAction(m_newAct);
     m_fileMenu->addAction(m_openFileAct);
-    m_fileMenu->addAction(m_addFolderAct);
     m_fileMenu->addAction(m_openFolderAct);
     m_fileMenu->addAction(m_openFolderNewWindowAct);
     m_fileMenu->addSeparator();
@@ -831,6 +826,9 @@ void LiteApp::loadSession(const QString &name)
 
     if (m_settings->value(LITEAPP_STARTUPRELOADFOLDERS,true).toBool()) {
         m_fileManager->setFolderList(folderList);
+        if (!folderList.isEmpty()) {
+
+        }
     }
 
     if (!projectName.isEmpty()) {

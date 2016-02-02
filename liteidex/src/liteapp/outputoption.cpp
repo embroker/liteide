@@ -1,7 +1,7 @@
 /**************************************************************************
 ** This file is part of LiteIDE
 **
-** Copyright (c) 2011-2015 LiteIDE Team. All rights reserved.
+** Copyright (c) 2011-2016 LiteIDE Team. All rights reserved.
 **
 ** This library is free software; you can redistribute it and/or
 ** modify it under the terms of the GNU Lesser General Public
@@ -75,8 +75,8 @@ OutputOption::OutputOption(LiteApi::IApplication *app,QObject *parent) :
     bool useColorScheme = m_liteApp->settings()->value(OUTPUT_USECOLORSCHEME,true).toBool();
     ui->useColorSchemeCheckBox->setChecked(useColorScheme);
 
-    bool wrap = m_liteApp->settings()->value(OUTPUT_LINEWRAP,false).toBool();
-    ui->lineWrapCheckBox->setChecked(wrap);
+    int maxLines = m_liteApp->settings()->value(OUTPUT_MAXLINES,5000).toInt();
+    ui->spinBoxOutputMaxLines->setValue(maxLines);
 }
 
 OutputOption::~OutputOption()
@@ -121,10 +121,10 @@ void OutputOption::apply()
     m_liteApp->settings()->setValue(OUTPUT_FONTZOOM,fontZoom);
 
     bool colorScheme = ui->useColorSchemeCheckBox->isChecked();
-    bool lineWrap = ui->lineWrapCheckBox->isChecked();
+    int maxLines = ui->spinBoxOutputMaxLines->value();
 
     m_liteApp->settings()->setValue(OUTPUT_USECOLORSCHEME,colorScheme);
-    m_liteApp->settings()->setValue(OUTPUT_LINEWRAP,lineWrap);
+    m_liteApp->settings()->setValue(OUTPUT_MAXLINES,maxLines);
 }
 
 void OutputOption::updatePointSizes()

@@ -1,7 +1,7 @@
 /**************************************************************************
 ** This file is part of LiteIDE
 **
-** Copyright (c) 2011-2015 LiteIDE Team. All rights reserved.
+** Copyright (c) 2011-2016 LiteIDE Team. All rights reserved.
 **
 ** This library is free software; you can redistribute it and/or
 ** modify it under the terms of the GNU Lesser General Public
@@ -148,6 +148,35 @@ void FolderListView::clear()
     m_model->clear();
 }
 
+void FolderListView::expandFolder(const QString &path, bool expand)
+{
+    QList<QModelIndex> indexList = m_model->indexForPath(path);
+    foreach (QModelIndex sourceIndex, indexList) {
+        QModelIndex index = sourceIndex;
+        if (m_proxy) {
+            index = m_proxy->mapFromSource(sourceIndex);
+        }
+        if (expand) {
+            this->expand(index);
+        } else {
+            this->collapse(index);
+        }
+    }
+}
+
+QList<QModelIndex> FolderListView::indexForPath(const QString &path) const
+{
+    QList<QModelIndex> indexList = m_model->indexForPath(path);
+    if (!m_proxy) {
+        return indexList;
+    }
+    QList<QModelIndex> indexs;
+    foreach (QModelIndex sourceIndex, indexList) {
+        indexs.push_back(m_proxy->mapFromSource(sourceIndex));
+    }
+    return indexs;
+}
+
 void FolderListView::customContextMenuRequested(const QPoint &pos)
 {
     QMenu menu(this);
@@ -181,7 +210,7 @@ void FolderListView::customContextMenuRequested(const QPoint &pos)
     }
     //root folder
     if (flag == LiteApi::FILESYSTEM_ROOT) {
-        menu.addAction(m_addFolderAct);
+        menu.addAction(m_openFolderAct);
     } else if (flag == LiteApi::FILESYSTEM_ROOTFOLDER) {
         menu.addAction(m_newFileAct);
         menu.addAction(m_newFileWizardAct);
@@ -275,22 +304,9 @@ void FolderListView::removeFolder()
     }
 }
 
-void FolderListView::addFolder()
+void FolderListView::openFolder()
 {
-#if QT_VERSION >= 0x050000
-        static QString home = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
-#else
-        static QString home = QDesktopServices::storageLocation(QDesktopServices::HomeLocation);
-#endif
-    QString folder = QFileDialog::getExistingDirectory(m_liteApp->mainWindow(),tr("Add Folder"),home);
-    if (folder.isEmpty()) {
-        return;
-    }
-    m_model->addRootPath(folder);
-    QDir dir(folder);
-    if (dir.cdUp()) {
-        home = dir.path();
-    }
+    m_liteApp->fileManager()->openFolder();
 }
 
 void FolderListView::closeFolder()

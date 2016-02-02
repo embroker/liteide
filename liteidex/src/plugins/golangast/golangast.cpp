@@ -1,7 +1,7 @@
 /**************************************************************************
 ** This file is part of LiteIDE
 **
-** Copyright (c) 2011-2015 LiteIDE Team. All rights reserved.
+** Copyright (c) 2011-2016 LiteIDE Team. All rights reserved.
 **
 ** This library is free software; you can redistribute it and/or
 ** modify it under the terms of the GNU Lesser General Public
@@ -25,6 +25,7 @@
 #include "golangastitem.h"
 #include "golangasticon.h"
 #include "astwidget.h"
+#include "liteenvapi/liteenvapi.h"
 
 #include <QStackedWidget>
 #include <QDockWidget>
@@ -334,6 +335,7 @@ void GolangAst::updateAstNow()
     QStringList args;
     args << "astview";
     args << m_updateFileNames;
+    m_process->setEnvironment(LiteApi::getGoEnvironment(m_liteApp).toStringList());
     m_process->start(cmd,args);
 }
 
@@ -354,6 +356,7 @@ void GolangAst::updateAstNowFile()
     QStringList args;
     args << "astview";
     args << m_editorFileName;
+    m_processFile->setEnvironment(LiteApi::getGoEnvironment(m_liteApp).toStringList());
     m_processFile->start(cmd,args);
 }
 

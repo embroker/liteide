@@ -1,7 +1,7 @@
 /**************************************************************************
 ** This file is part of LiteIDE
 **
-** Copyright (c) 2011-2015 LiteIDE Team. All rights reserved.
+** Copyright (c) 2011-2016 LiteIDE Team. All rights reserved.
 **
 ** This library is free software; you can redistribute it and/or
 ** modify it under the terms of the GNU Lesser General Public
@@ -171,6 +171,7 @@ struct Link
         , targetLine(-1)
         , targetColumn(-1)
         , showTip(false)
+        , showNav(false)
     {}
 
     void clear()
@@ -182,6 +183,7 @@ struct Link
         targetLine = 0;
         targetColumn = 0;
         showTip = false;
+        showNav = false;
     }
 
     bool hasValidTarget() const
@@ -198,6 +200,7 @@ struct Link
     int targetLine;
     int targetColumn;
     bool    showTip;
+    bool    showNav;
     QString targetFileName;
     QString targetInfo;
     QPoint cursorPos;

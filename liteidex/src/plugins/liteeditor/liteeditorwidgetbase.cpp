@@ -1,7 +1,7 @@
 /**************************************************************************
 ** This file is part of LiteIDE
 **
-** Copyright (c) 2011-2015 LiteIDE Team. All rights reserved.
+** Copyright (c) 2011-2016 LiteIDE Team. All rights reserved.
 **
 ** This library is free software; you can redistribute it and/or
 ** modify it under the terms of the GNU Lesser General Public
@@ -1313,7 +1313,7 @@ void LiteEditorWidgetBase::slotSelectionChanged()
         QString text = cur.selectedText();
         cur.setPosition(cur.selectionStart());
         cur.select(QTextCursor::WordUnderCursor);
-        if (text == cur.selectedText() && text.begin()->isLetterOrNumber()) {
+        if (text == cur.selectedText() && isIdentifierChar(*text.begin())) {
             pattern = text;
         }
     }
@@ -2863,10 +2863,14 @@ void LiteEditorWidgetBase::showLink(const LiteApi::Link &link)
 {
     if (link.showTip
             && !link.targetInfo.isEmpty()
-            && m_showLinkInfomation
-            && link.cursorPos == m_lastUpToolTipPos) {
+//            && m_showLinkInfomation
+            /*&& link.cursorPos == m_lastUpToolTipPos*/) {
         QPoint pt = this->mapToGlobal(link.cursorPos);
         QToolTip::showText(pt,link.targetInfo,this);
+    }
+
+    if (!link.showNav) {
+        return;
     }
 
     if (!m_showLinkNavigation) {
@@ -3285,8 +3289,8 @@ static bool findInBlock(const QTextBlock &block, const QRegExp &expression, int 
         if (options & QTextDocument::FindWholeWords) {
             const int start = idx;
             const int end = start + expr.matchedLength();
-            if ((start != 0 && text.at(start - 1).isLetterOrNumber())
-                || (end != text.length() && text.at(end).isLetterOrNumber())) {
+            if ((start != 0 && isIdentifierChar(text.at(start - 1)))
+                || (end != text.length() && isIdentifierChar(text.at(end)))) {
                 //if this is not a whole word, continue the search in the string
                 offset = (options & QTextDocument::FindBackward) ? idx-1 : end+1;
                 idx = -1;

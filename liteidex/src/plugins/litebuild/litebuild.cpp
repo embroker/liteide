@@ -1,7 +1,7 @@
 /**************************************************************************
 ** This file is part of LiteIDE
 **
-** Copyright (c) 2011-2015 LiteIDE Team. All rights reserved.
+** Copyright (c) 2011-2016 LiteIDE Team. All rights reserved.
 **
 ** This library is free software; you can redistribute it and/or
 ** modify it under the terms of the GNU Lesser General Public
@@ -166,14 +166,13 @@ LiteBuild::LiteBuild(LiteApi::IApplication *app, QObject *parent) :
     m_buildToolBar->addAction(m_configAct);
     m_buildToolBar->addSeparator();
 
-    m_lockBuildRoot = new QCheckBox;
+    m_checkBoxLockBuild = new QCheckBox;
 
-    m_buildToolBar->addWidget(m_lockBuildRoot);
+    m_buildToolBar->addWidget(m_checkBoxLockBuild);
     m_buildToolBar->addSeparator();
 
     m_process = new ProcessEx(this);
     m_output = new TextOutput(m_liteApp);
-    m_output->setMaxLine(2048);
 
     m_stopAct = new QAction(tr("Stop Action"),this);
     m_stopAct->setIcon(QIcon("icon:litebuild/images/stopaction.png"));
@@ -186,6 +185,7 @@ LiteBuild::LiteBuild(LiteApi::IApplication *app, QObject *parent) :
     m_fmctxExecuteFileAct = new QAction(tr("Execute File"),this);
     connect(m_fmctxExecuteFileAct,SIGNAL(triggered()),this,SLOT(fmctxExecuteFile()));
 
+    m_fmctxGoLockBuildAct = new QAction(tr("Lock Build Path"),this);
     m_fmctxGoBuildAct = new QAction(tr("Go Build"),this);
     m_fmctxGoBuildAct->setData("build -v ./...");
     m_fmctxGoInstallAct = new QAction(tr("Go Install"),this);
@@ -194,10 +194,14 @@ LiteBuild::LiteBuild(LiteApi::IApplication *app, QObject *parent) :
     m_fmctxGoTestAct->setData("test -v ./...");
     m_fmctxGoCleanAct = new QAction(tr("Go Clean"),this);
     m_fmctxGoCleanAct->setData("clean -i -x ./...");
+    connect(m_fmctxGoLockBuildAct,SIGNAL(triggered()),this,SLOT(fmctxGoLockBuild()));
     connect(m_fmctxGoBuildAct,SIGNAL(triggered()),this,SLOT(fmctxGoTool()));
     connect(m_fmctxGoInstallAct,SIGNAL(triggered()),this,SLOT(fmctxGoTool()));
     connect(m_fmctxGoTestAct,SIGNAL(triggered()),this,SLOT(fmctxGoTool()));
     connect(m_fmctxGoCleanAct,SIGNAL(triggered()),this,SLOT(fmctxGoTool()));
+
+    m_fmctxGoFmtAct = new QAction(tr("Go Fmt"),this);
+    connect(m_fmctxGoFmtAct,SIGNAL(triggered()),this,SLOT(fmctxGofmt()));
 
     connect(m_stopAct,SIGNAL(triggered()),this,SLOT(stopAction()));
     connect(m_clearAct,SIGNAL(triggered()),m_output,SLOT(clear()));
@@ -209,11 +213,31 @@ LiteBuild::LiteBuild(LiteApi::IApplication *app, QObject *parent) :
     m_buildMenu->addSeparator();
 
     //m_liteApp->outputManager()->addOutuput(m_output,tr("Build Output"));
+    m_outputLineWrapAct = new QAction(tr("Line Wrap"),this);
+    m_outputLineWrapAct->setCheckable(true);
+    connect(m_outputLineWrapAct,SIGNAL(toggled(bool)),this,SLOT(setOutputLineWrap(bool)));
+
+    m_outputAutoClearAct = new QAction(tr("Auto Clear"),this);
+    m_outputAutoClearAct->setCheckable(true);
+    connect(m_outputAutoClearAct,SIGNAL(triggered(bool)),this,SLOT(setOutputAutoClear(bool)));
+
+    bool bLineWrap = m_liteApp->settings()->value(LITEBUILD_OUTPUTLINEWRAP,false).toBool();
+    m_bOutputAutoClear = m_liteApp->settings()->value(LITEBUILD_OUTPUTAUTOCLEAR,true).toBool();
+
+    m_output->setLineWrap(bLineWrap);
+    m_outputLineWrapAct->setChecked(bLineWrap);
+    m_outputAutoClearAct->setChecked(m_bOutputAutoClear);
+
+    m_outputMenu = new QMenu(tr("Setup"));
+    m_outputMenu->setIcon(QIcon(":/images/setup.png"));
+    m_outputMenu->addAction(m_outputAutoClearAct);
+    m_outputMenu->addAction(m_outputLineWrapAct);
+
     m_outputAct = m_liteApp->toolWindowManager()->addToolWindow(Qt::BottomDockWidgetArea,
                                                                 m_output,"buildoutput",
                                                                 tr("Build Output"),
                                                                 false,
-                                                                QList<QAction*>() << m_stopAct << m_clearAct);
+                                                                QList<QAction*>() << m_stopAct << m_clearAct << m_outputMenu->menuAction());
 
     connect(m_liteApp,SIGNAL(loaded()),this,SLOT(appLoaded()));
     connect(m_liteApp->optionManager(),SIGNAL(applyOption(QString)),this,SLOT(applyOption(QString)));
@@ -226,7 +250,7 @@ LiteBuild::LiteBuild(LiteApi::IApplication *app, QObject *parent) :
     connect(m_output,SIGNAL(enterText(QString)),this,SLOT(enterTextBuildOutput(QString)));
     connect(m_configAct,SIGNAL(triggered()),this,SLOT(config()));
     connect(m_liteApp->fileManager(),SIGNAL(aboutToShowFolderContextMenu(QMenu*,LiteApi::FILESYSTEM_CONTEXT_FLAG,QFileInfo)),this,SLOT(aboutToShowFolderContextMenu(QMenu*,LiteApi::FILESYSTEM_CONTEXT_FLAG,QFileInfo)));
-    connect(m_lockBuildRoot,SIGNAL(toggled(bool)),this,SLOT(lockBuildRoot(bool)));
+    connect(m_checkBoxLockBuild,SIGNAL(toggled(bool)),this,SLOT(lockBuildRoot(bool)));
 
     m_liteAppInfo.insert("LITEAPPDIR",m_liteApp->applicationPath());
     m_liteAppInfo.insert("LITEIDE_BIN_DIR",m_liteApp->applicationPath());
@@ -266,6 +290,7 @@ LiteBuild::~LiteBuild()
     qDeleteAll(m_buildBarInfoMap);
     stopAction();
     delete m_output;
+    delete m_outputMenu;
     if (!m_nullMenu->parent()) {
         delete m_nullMenu;
     }
@@ -442,12 +467,15 @@ void LiteBuild::aboutToShowFolderContextMenu(QMenu *menu, LiteApi::FILESYSTEM_CO
             if (!menu->actions().isEmpty()) {
                 act = menu->actions().at(0);
             }
+            menu->insertAction(act,m_fmctxGoLockBuildAct);
+            menu->insertSeparator(act);
             menu->insertAction(act,m_fmctxGoBuildAct);
             menu->insertAction(act,m_fmctxGoInstallAct);
             if (hasTest) {
                 menu->insertAction(act,m_fmctxGoTestAct);
             }
             menu->insertAction(act,m_fmctxGoCleanAct);
+            menu->insertAction(act,m_fmctxGoFmtAct);
             menu->insertSeparator(act);
         }
     }
@@ -462,6 +490,12 @@ void LiteBuild::fmctxExecuteFile()
     }
 }
 
+void LiteBuild::fmctxGoLockBuild()
+{
+    QString buildPath = m_fmctxInfo.filePath();
+    this->lockBuildRootByMimeType(buildPath,"text/x-gosrc");
+}
+
 void LiteBuild::fmctxGoTool()
 {
     QAction *act = (QAction*)sender();
@@ -471,6 +505,19 @@ void LiteBuild::fmctxGoTool()
     // build install test clean
     QString args = act->data().toString();
     QString cmd = FileUtil::lookupGoBin("go",m_liteApp,false);
+    m_outputRegex = "(\\w?:?[\\w\\d_\\-\\\\/\\.]+):(\\d+):";
+    m_process->setUserData(ID_REGEXP,m_outputRegex);
+    if (!cmd.isEmpty()) {
+        m_liteApp->editorManager()->saveAllEditors();
+        this->stopAction();
+        this->executeCommand(cmd,args,m_fmctxInfo.filePath(),true,true,true,false);
+    }
+}
+
+void LiteBuild::fmctxGofmt()
+{
+    QString args = "gofmt -l -w -sortimports=true .";
+    QString cmd = LiteApi::getGotools(m_liteApp);
     m_outputRegex = "(\\w?:?[\\w\\d_\\-\\\\/\\.]+):(\\d+):";
     m_process->setUserData(ID_REGEXP,m_outputRegex);
     if (!cmd.isEmpty()) {
@@ -495,6 +542,18 @@ void LiteBuild::lockBuildRoot(bool b)
     if (!b) {
         this->currentEditorChanged(m_liteApp->editorManager()->currentEditor());
     }
+}
+
+void LiteBuild::setOutputLineWrap(bool b)
+{
+    m_output->setLineWrap(b);
+    m_liteApp->settings()->setValue(LITEBUILD_OUTPUTLINEWRAP,b);
+}
+
+void LiteBuild::setOutputAutoClear(bool b)
+{
+    m_bOutputAutoClear = b;
+    m_liteApp->settings()->setValue(LITEBUILD_OUTPUTAUTOCLEAR,b);
 }
 
 bool LiteBuild::isLockBuildRoot() const
@@ -859,13 +918,13 @@ void LiteBuild::loadBuildPath(const QString &buildPath, const QString &buildName
     m_buildRootPath = buildPath;
     m_buildRootName = buildName;
     if (buildName.isEmpty()) {
-        m_lockBuildRoot->setEnabled(false);
-        m_lockBuildRoot->setText("");
-        m_lockBuildRoot->setToolTip("");
+        m_checkBoxLockBuild->setEnabled(false);
+        m_checkBoxLockBuild->setText("");
+        m_checkBoxLockBuild->setToolTip("");
     } else {
-        m_lockBuildRoot->setEnabled(true);
-        m_lockBuildRoot->setText(buildName);
-        m_lockBuildRoot->setToolTip(QString("%1 : %2").arg(tr("Lock Build")).arg(buildInfo));
+        m_checkBoxLockBuild->setEnabled(true);
+        m_checkBoxLockBuild->setText(buildName);
+        m_checkBoxLockBuild->setToolTip(QString("%1 : %2").arg(tr("Lock Build")).arg(buildInfo));
     }
     emit buildPathChanged(buildPath);
     if (buildPath.isEmpty()) {
@@ -974,7 +1033,7 @@ void LiteBuild::loadBuildType(const QString &mimeType)
         m_buildMenu->menuAction()->setMenu(m_nullMenu);
     }
     m_buildMenu->setEnabled(menu != 0);
-    m_lockBuildRoot->setEnabled(m_build != 0);
+    m_checkBoxLockBuild->setEnabled(m_build != 0);
 
     QMapIterator<QString,BuildBarInfo*> i(m_buildBarInfoMap);
     while(i.hasNext()) {
@@ -1049,6 +1108,28 @@ void LiteBuild::editorCreated(LiteApi::IEditor *editor)
         }
         m_buildBarInfoMap.insert(build->mimeType(),info);
     }
+}
+
+void LiteBuild::lockBuildRootByMimeType(const QString &path, const QString &mimeType)
+{
+    LiteApi::IBuild *build = m_buildManager->findBuild(mimeType);
+    if (!build) {
+        return;
+    }
+    if (build->lock() != "dir") {
+        return;
+    }
+    m_bLockBuildRoot = true;
+    m_checkBoxLockBuild->setChecked(true);
+    QString buildPath;
+    QString buildName;
+    QString buildInfo;
+    QFileInfo info(path);
+    buildPath = info.filePath();
+    buildName = info.fileName();
+    buildInfo = QDir::toNativeSeparators(buildPath);
+    loadBuildPath(buildPath,buildName,buildInfo);
+    loadBuildType(mimeType);
 }
 
 void LiteBuild::currentEditorChanged(LiteApi::IEditor *editor)
@@ -1261,7 +1342,11 @@ void LiteBuild::executeCommand(const QString &cmd1, const QString &args, const Q
 
 void LiteBuild::buildAction(LiteApi::IBuild* build,LiteApi::BuildAction* ba)
 {  
-    m_output->clear();
+    if (m_bOutputAutoClear) {
+        m_output->clear();
+    } else {
+        m_output->updateExistsTextColor(true);
+    }
     m_outputAct->setChecked(true);
     if (m_process->isRunning()) {        
         if (ba->isKillOld()) {

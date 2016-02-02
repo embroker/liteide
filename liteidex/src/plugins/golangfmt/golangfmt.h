@@ -1,7 +1,7 @@
 /**************************************************************************
 ** This file is part of LiteIDE
 **
-** Copyright (c) 2011-2015 LiteIDE Team. All rights reserved.
+** Copyright (c) 2011-2016 LiteIDE Team. All rights reserved.
 **
 ** This library is free software; you can redistribute it and/or
 ** modify it under the terms of the GNU Lesser General Public
@@ -52,11 +52,12 @@ protected:
     LiteApi::IApplication *m_liteApp;
     ProcessEx *m_process;
     LiteApi::IEnvManager *m_envManager;
-    QString m_gofmtCmd;
+    //QString m_gofmtCmd;
     QByteArray m_data;
     QByteArray m_errData;
-    bool m_goimports;
     bool m_diff;
+    bool m_fixImports;
+    bool m_sorImports;
     bool m_autofmt;
     bool m_syncfmt;
     int  m_timeout;

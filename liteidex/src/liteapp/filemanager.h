@@ -1,7 +1,7 @@
 /**************************************************************************
 ** This file is part of LiteIDE
 **
-** Copyright (c) 2011-2015 LiteIDE Team. All rights reserved.
+** Copyright (c) 2011-2016 LiteIDE Team. All rights reserved.
 **
 ** This library is free software; you can redistribute it and/or
 ** modify it under the terms of the GNU Lesser General Public
@@ -32,7 +32,6 @@ using namespace LiteApi;
 class QFileSystemWatcher;
 class NewFileDialog;
 class FolderListView;
-
 
 class FileManager : public IFileManager
 {
@@ -76,7 +75,6 @@ public slots:
     void openFiles();
     void openFolder();
     void openFolderNewWindow();
-    void addFolder();
     void closeAllFolders();
     void newInstance();
     void openEditors();
@@ -90,6 +88,8 @@ public slots:
     void applyOption(QString);
     void showHideFiles(bool);
     void activatedFolderView(const QModelIndex &index);
+    void currentEditorChanged(LiteApi::IEditor *editor);
+    void triggeredSyncEditor(bool b);
 protected:
     NewFileDialog        *m_newFileDialog;
     FolderListView     *m_folderListView;
@@ -104,8 +104,9 @@ protected:
     QMenu       *m_recentMenu;
     QAction     *m_toolWindowAct;
     QString      m_initPath;
-    QMenu*      m_configMenu;
+    QMenu*       m_filterMenu;
     QAction*     m_showHideFilesAct;
+    QAction*     m_syncEditorAct;
 };
 
 #endif // FILEMANAGER_H

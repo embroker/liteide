@@ -1,7 +1,7 @@
 /**************************************************************************
 ** This file is part of LiteIDE
 **
-** Copyright (c) 2011-2015 LiteIDE Team. All rights reserved.
+** Copyright (c) 2011-2016 LiteIDE Team. All rights reserved.
 **
 ** This library is free software; you can redistribute it and/or
 ** modify it under the terms of the GNU Lesser General Public
@@ -39,6 +39,8 @@ public:
     void appendTag(const QString &text, bool error = false, bool time = false);
     void updateExistsTextColor(bool force = false);
     void setMaxLine(int max);
+    void setLineWrap(bool b);
+    bool isLineWrap() const;
 public slots:
     void loadColorStyleScheme();
     void applyOption(QString);

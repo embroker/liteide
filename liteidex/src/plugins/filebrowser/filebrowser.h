@@ -1,7 +1,7 @@
 /**************************************************************************
 ** This file is part of LiteIDE
 **
-** Copyright (c) 2011-2015 LiteIDE Team. All rights reserved.
+** Copyright (c) 2011-2016 LiteIDE Team. All rights reserved.
 **
 ** This library is free software; you can redistribute it and/or
 ** modify it under the terms of the GNU Lesser General Public
@@ -66,7 +66,7 @@ protected:
     QAction *m_syncAct;
     QAction *m_showHideFilesAct;
     QAction *m_reloadAct;
-    QMenu   *m_configMenu;
+    QMenu   *m_filterMenu;
 protected:
     QAction *m_toolWindowAct;
     QAction *m_cdupAct;

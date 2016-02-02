@@ -1,7 +1,7 @@
 /**************************************************************************
 ** This file is part of LiteIDE
 **
-** Copyright (c) 2011-2015 LiteIDE Team. All rights reserved.
+** Copyright (c) 2011-2016 LiteIDE Team. All rights reserved.
 **
 ** This library is free software; you can redistribute it and/or
 ** modify it under the terms of the GNU Lesser General Public
@@ -49,8 +49,9 @@
 GolangFmt::GolangFmt(LiteApi::IApplication *app,QObject *parent) :
     QObject(parent),
     m_liteApp(app),
-    m_goimports(false),
     m_diff(true),
+    m_fixImports(false),
+    m_sorImports(true),
     m_autofmt(true),
     m_syncfmt(false),
     m_timeout(600)
@@ -60,7 +61,6 @@ GolangFmt::GolangFmt(LiteApi::IApplication *app,QObject *parent) :
     connect(m_process,SIGNAL(started()),this,SLOT(fmtStarted()));
     connect(m_process,SIGNAL(extFinish(bool,int,QString)),this,SLOT(fmtFinish(bool,int,QString)));
 
-    m_goimports = m_liteApp->settings()->value(GOLANGFMT_USEGOIMPORTS,false).toBool();
     m_envManager = LiteApi::findExtensionObject<LiteApi::IEnvManager*>(m_liteApp,"LiteApi.IEnvManager");
     if (m_envManager) {
         connect(m_envManager,SIGNAL(currentEnvChanged(LiteApi::IEnv*)),this,SLOT(currentEnvChanged(LiteApi::IEnv*)));
@@ -75,15 +75,9 @@ void GolangFmt::applyOption(QString id)
     if (id != "option/golangfmt") {
         return;
     }
-    bool goimports = m_liteApp->settings()->value(GOLANGFMT_USEGOIMPORTS,false).toBool();
-    m_diff = m_liteApp->settings()->value(GOLANGFMT_USEDIFF,true).toBool();
+    m_fixImports = m_liteApp->settings()->value(GOLANGFMT_FIXIMPORTS,false).toBool();
+    m_sorImports = m_liteApp->settings()->value(GOLANGFMT_SORTIMPORTS,true).toBool();
     m_autofmt = m_liteApp->settings()->value(GOLANGFMT_AUTOFMT,true).toBool();
-    if (!m_diff) {
-        m_autofmt = false;
-    }
-    if (goimports != m_goimports) {
-        m_goimports = goimports;
-    }
     m_syncfmt = m_liteApp->settings()->value(GOLANGFMT_USESYNCFMT,true).toBool();
     m_timeout = m_liteApp->settings()->value(GOLANGFMT_SYNCTIMEOUT,500).toInt();
 }
@@ -119,36 +113,28 @@ void GolangFmt::syncfmtEditor(LiteApi::IEditor *editor, bool save, bool check, i
     }
 
     QProcess process;
-    process.setEnvironment(LiteApi::getGoEnvironment(m_liteApp).toStringList());
+    process.setProcessEnvironment(LiteApi::getGoEnvironment(m_liteApp));
 
     QStringList args;
-    //format style
+    args << "gofmt";
+    //format style 0: auto, 1: gofmt 2: fiximports
     if (fmtStyle == 0) {
-        if (m_goimports) {
-            args << "goimports";
-        }
-        if (m_diff) {
-            args << "-d";
-        }
-        if (m_goimports) {
-            QString cmd = LiteApi::getGotools(m_liteApp);
-            process.start(cmd,args);
-        } else {
-            process.start(m_gofmtCmd,args);
+        if (m_fixImports) {
+            args << "-fiximports";
         }
     } else if (fmtStyle == 1) {
-        if (m_diff) {
-            args << "-d";
-        }
-        process.start(m_gofmtCmd,args);
     } else if (fmtStyle == 2) {
-        args << "goimports";
-        if (m_diff) {
-            args << "-d";
-        }
-        QString cmd = LiteApi::getGotools(m_liteApp);
-        process.start(cmd,args);
+        args << "-fiximports";
     }
+    if (m_diff) {
+        args << "-d";
+    }
+    if (m_sorImports) {
+        args << "-sortimports";
+    }
+    QString cmd = LiteApi::getGotools(m_liteApp);
+    process.start(cmd,args);
+
     if (!process.waitForStarted(timeout)) {
         m_liteApp->appendLog("gofmt",QString("Timed out after %1ms when starting go code format").arg(timeout),false);
         return;
@@ -246,18 +232,18 @@ void GolangFmt::fmtEditor(LiteApi::IEditor *editor, bool save)
     m_process->setUserData(2,save);
 
     QStringList args;
-    if (m_goimports) {
-        args << "goimports";
+    args << "gofmt";
+    if (m_fixImports) {
+        args << "-fiximports";
+    }
+    if (m_sorImports) {
+        args << "-sortimports";
     }
     if (m_diff) {
         args << "-d";
     }
-    if (m_goimports) {
-        QString cmd = LiteApi::getGotools(m_liteApp);
-        m_process->start(cmd,args);
-    } else {
-        m_process->start(m_gofmtCmd,args);
-    }
+    QString cmd = LiteApi::getGotools(m_liteApp);
+    m_process->start(cmd,args);
 }
 
 void GolangFmt::editorAboutToSave(LiteApi::IEditor* editor)
@@ -274,15 +260,18 @@ void GolangFmt::editorAboutToSave(LiteApi::IEditor* editor)
 
 void GolangFmt::currentEnvChanged(LiteApi::IEnv*)
 {
-    QProcessEnvironment env = m_envManager->currentEnvironment();
+    QProcessEnvironment env = LiteApi::getGoEnvironment(m_liteApp);
+    m_process->setProcessEnvironment(env);
+
     if (!LiteApi::hasGoEnv(env)) {
+        m_liteApp->appendLog("GolangFmt","Could not find go env", false);
         return;
     }
-    m_gofmtCmd = FileUtil::lookupGoBin("gofmt",m_liteApp,false);
-    if (m_gofmtCmd.isEmpty()) {
-        m_liteApp->appendLog("GolangFmt",QString("Could not find %1").arg(m_gofmtCmd),false);
-    }
-    m_process->setProcessEnvironment(env);
+//    m_liteApp->appendLog("GolangFmt","go environment changed");
+//    m_gofmtCmd = FileUtil::lookupGoBin("gofmt",m_liteApp,false);
+//    if (m_gofmtCmd.isEmpty()) {
+//        m_liteApp->appendLog("GolangFmt",QString("Could not find %1").arg(m_gofmtCmd),false);
+//    }
 }
 
 void GolangFmt::gofmt()
@@ -399,10 +388,11 @@ void GolangFmt::fmtFinish(bool error,int code,QString)
 
 void GolangFmt::loadDiff(QTextCursor &cursor, const QString &diff)
 {
-    QRegExp reg("@@\\s+\\-(\\d+),(\\d+)\\s+\\+(\\d+),(\\d+)\\s+@@");
+    QRegExp reg("@@\\s+\\-(\\d+),?(\\d+)?\\s+\\+(\\d+),?(\\d+)?\\s+@@");
     QTextBlock block;
     int line = -1;
     int line_add = 0;
+    int block_number = 0;
     foreach(QString s, diff.split('\n')) {
         if (s.length() == 0) {
             continue;
@@ -415,8 +405,9 @@ void GolangFmt::loadDiff(QTextCursor &cursor, const QString &diff)
                 //int n1 = reg.cap(3).toInt();
                 int n2 = reg.cap(4).toInt();
                 line = line_add+s1;
-                block = cursor.document()->findBlockByNumber(line-1);
+                //block = cursor.document()->findBlockByNumber(line-1);
                 line_add += n2-s2;//n2+n1-(s2+s1);
+                block_number = line-1;
                 continue;
             }
         }
@@ -424,22 +415,33 @@ void GolangFmt::loadDiff(QTextCursor &cursor, const QString &diff)
             continue;
         }
         if (ch == '+') {
-            cursor.setPosition(block.position());
-            cursor.insertText(s.right(s.length()-1)+"\n");
-            block = cursor.block();
-            //break;
+            block = cursor.document()->findBlockByNumber(block_number);
+            if (!block.isValid()) {
+                cursor.movePosition(QTextCursor::End);
+                cursor.insertBlock();
+                cursor.insertText(s.mid(1));
+            } else {
+                cursor.setPosition(block.position());
+                cursor.insertText(s.mid(1));
+                cursor.insertBlock();
+            }
+            block_number++;
         } else if (ch == '-') {
+            block = cursor.document()->findBlockByNumber(block_number);
             cursor.setPosition(block.position());
             if (block.next().isValid()) {
                 cursor.setPosition(block.next().position(), QTextCursor::KeepAnchor);
+                cursor.removeSelectedText();
             } else {
-                cursor.movePosition(QTextCursor::EndOfBlock, QTextCursor::KeepAnchor);
+                cursor.movePosition(QTextCursor::EndOfBlock);
+                cursor.movePosition(QTextCursor::StartOfBlock, QTextCursor::KeepAnchor);
+                cursor.movePosition(QTextCursor::PreviousCharacter, QTextCursor::KeepAnchor);
+                cursor.removeSelectedText();
             }
-            cursor.removeSelectedText();
-            block = cursor.block();
         } else if (ch == ' ') {
-            block = block.next();
+            block_number++;
         } else if (ch == '\\') {
+            //skip comment
         }
     }
 }

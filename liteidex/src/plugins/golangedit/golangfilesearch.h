@@ -1,7 +1,7 @@
 /**************************************************************************
 ** This file is part of LiteIDE
 **
-** Copyright (c) 2011-2015 LiteIDE Team. All rights reserved.
+** Copyright (c) 2011-2016 LiteIDE Team. All rights reserved.
 **
 ** This library is free software; you can redistribute it and/or
 ** modify it under the terms of the GNU Lesser General Public
@@ -28,6 +28,18 @@
 #include "litefindapi/litefindapi.h"
 #include "liteeditorapi/liteeditorapi.h"
 #include "processex/processex.h"
+
+inline QByteArray trimmedRight(const QByteArray &d)
+{
+    if (d.size() == 0) {
+        return d;
+    }
+    const char *s = d.data();
+    int end = d.size() - 1;
+    while (end && isspace(uchar(s[end])))           // skip white space from end
+        end--;
+    return d.left(end+1);
+}
 
 class GolangFileSearch : public LiteApi::IFileSearch
 {

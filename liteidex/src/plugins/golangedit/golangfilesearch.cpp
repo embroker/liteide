@@ -1,7 +1,7 @@
 /**************************************************************************
 ** This file is part of LiteIDE
 **
-** Copyright (c) 2011-2015 LiteIDE Team. All rights reserved.
+** Copyright (c) 2011-2016 LiteIDE Team. All rights reserved.
 **
 ** This library is free software; you can redistribute it and/or
 ** modify it under the terms of the GNU Lesser General Public
@@ -176,7 +176,7 @@ void GolangFileSearch::findUsagesOutput(QByteArray data, bool bStdErr)
                         QByteArray line = m_file.readLine();
                         m_lastLine++;
                         if (fileLine == m_lastLine) {
-                            m_lastLineText = QString::fromUtf8(line);
+                            m_lastLineText = QString::fromUtf8(trimmedRight(line));
                             if (fileCol > 0) {
                                 fileCol = QString::fromUtf8(line.left(fileCol)).length();
                             }
