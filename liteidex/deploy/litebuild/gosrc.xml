@@ -19,6 +19,9 @@
 		<action id="RunTerm" os="macosx" img="blue/runterm.png" key="Ctrl+Shift+F5" cmd="/usr/bin/open" args="$(TARGETNAME)" output="false" readline="true"/>
 		<action id="FileRun" img="blue/filerun.png" key="Shift+Alt+R;Alt+F6" cmd="$(GO)" args="run $(EDITOR_FILE_NAME)" save="editor" output="true" codec="utf-8" readline="true" work="$(EDITOR_DIR_PATH)"/>
 		<action id="Build" img="blue/build.png" key="Ctrl+B;F7" cmd="$(GO)" args="build $(BUILDARGS)" save="all" output="true" codec="utf-8" regex="$(ERRREGEX)" navigate="true"/>
+		<action id="Generate" img="blue/build.png" cmd="$(GO)" args="generate" save="all" output="true" codec="utf-8" regex="$(ERRREGEX)" navigate="true"/>
+		<action id="GenerateAndBuild" img="blue/build.png" task="Generate;Build" killold="true"/>
+		<action id="GenerateAndBuildAndRun" img="blue/buildrun.png" task="Generate;Build;Run" killold="true"/>
 		<action id="ForceBuild" img="blue/rebuild.png" menu="Build" key="Ctrl+Alt+B" cmd="$(GO)" args="build $(FORCEBUILDARGS)" save="all" output="true" codec="utf-8" regex="$(ERRREGEX)" navigate="true"/>
 		<action id="Install" menu="Build" img="blue/install.png" key="Ctrl+F8" cmd="$(GO)" args="install $(INSTALLARGS)" save="all" output="true" codec="utf-8" regex="$(ERRREGEX)" navigate="true"/>
 		<action id="Clean" menu="Build" img="blue/clean.png" cmd="$(GO)" args="clean" save="all" output="true"/>

@@ -29,6 +29,8 @@
 #include <QMap>
 #include <QIODevice>
 
+class QIODevice;
+
 class ColorStyle
 {
 public:
