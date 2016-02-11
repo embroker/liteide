@@ -505,7 +505,7 @@ void LiteBuild::fmctxGoTool()
     // build install test clean
     QString args = act->data().toString();
     QString cmd = FileUtil::lookupGoBin("go",m_liteApp,false);
-    m_outputRegex = "(\\w?:?[\\w\\d_\\-\\\\/\\.]+):(\\d+):";
+    m_outputRegex = "(\\w?:?[\\w\\d_\\-\\\\/\\.]+):(\\d+)";
     m_process->setUserData(ID_REGEXP,m_outputRegex);
     if (!cmd.isEmpty()) {
         m_liteApp->editorManager()->saveAllEditors();
@@ -518,7 +518,7 @@ void LiteBuild::fmctxGofmt()
 {
     QString args = "gofmt -l -w -sortimports=true .";
     QString cmd = LiteApi::getGotools(m_liteApp);
-    m_outputRegex = "(\\w?:?[\\w\\d_\\-\\\\/\\.]+):(\\d+):";
+    m_outputRegex = "(\\w?:?[\\w\\d_\\-\\\\/\\.]+):(\\d+)";
     m_process->setUserData(ID_REGEXP,m_outputRegex);
     if (!cmd.isEmpty()) {
         m_liteApp->editorManager()->saveAllEditors();
@@ -1254,8 +1254,6 @@ void LiteBuild::extOutput(const QByteArray &data, bool bError)
 
 void LiteBuild::extFinish(bool error,int exitCode, QString msg)
 {
-    m_output->setReadOnly(true);
-
     bool isCommand = m_process->userData(ID_INPUTTYPE).toInt() == INPUT_COMMAND;
 
     if (!isCommand && exitCode != 0) {
@@ -1309,7 +1307,6 @@ void LiteBuild::executeCommand(const QString &cmd1, const QString &args, const Q
     }
     QProcessEnvironment sysenv = LiteApi::getGoEnvironment(m_liteApp);
     QString cmd = cmd1.trimmed();
-    m_output->setReadOnly(false);
     m_process->setEnvironment(sysenv.toStringList());
     m_process->setUserData(ID_CMD,cmd);
     m_process->setUserData(ID_ARGS,args);
@@ -1464,12 +1461,6 @@ void LiteBuild::execAction(const QString &mime, const QString &id)
         m_process->setUserData(ID_REGEXP,"");
     }
 
-    if (ba->isOutput() && ba->isReadline()) {
-        m_output->setReadOnly(false);
-    } else {
-        m_output->setReadOnly(true);
-    }
-
 //    if (ba->func() == "debug") {
 //        LiteApi::ILiteDebug *debug = LiteApi::getLiteDebug(m_liteApp);
 //        if (debug) {
@@ -1539,7 +1530,7 @@ void LiteBuild::dbclickBuildOutput(const QTextCursor &cur)
 {
     if (m_outputRegex.isEmpty()) {
         //m_outputRegex = "([\\w\\d_\\\\/\\.]+):(\\d+):";
-        m_outputRegex = "(\\w?:?[\\w\\d_\\-\\\\/\\.]+):(\\d+):";
+        m_outputRegex = "(\\w?:?[\\w\\d_\\-\\\\/\\.]+):(\\d+)";
     }
     QRegExp rep(m_outputRegex);//"([\\w\\d:_\\\\/\\.]+):(\\d+)");
 
